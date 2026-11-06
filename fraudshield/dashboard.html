@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FraudShield Dashboard</title>
+<style>
+body{font-family:Arial,sans-serif;background:#101827;color:#f8fafc;
+margin:0;padding:32px}
+main{max-width:960px;margin:auto}
+h1{color:#60a5fa}
+section{background:#1e293b;border-radius:14px;padding:24px;
+margin:20px 0}
+label{display:block;margin:12px 0}
+input{padding:10px;border-radius:6px;border:1px solid #64748b;
+background:#0f172a;color:white;max-width:95%}
+button{background:#2563eb;color:white;padding:12px 20px;
+border:0;border-radius:8px;cursor:pointer}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #475569}
+.high{color:#f87171}.medium{color:#fbbf24}.low{color:#4ade80}
+small{color:#94a3b8}
+</style>
+</head>
+<body>
+<main>
+<h1>FraudShield</h1>
+<p>Transaction Risk Analytics Dashboard</p>
+<small>Demonstration model trained on synthetic data.
+Not suitable for real financial decisions.</small>
+<section>
+<h2>Analyze a transaction</h2>
+<form id="form">
+<label>Amount (£)
+<input id="amount" type="number" value="250" min="0" step="0.01" required>
+</label>
+<label>Hour (0–23)
+<input id="hour" type="number" value="14" min="0" max="23" required>
+</label>
+<label>Previous transactions
+<input id="previous" type="number" value="10" min="0" required>
+</label>
+<label><input id="international" type="checkbox"> International</label>
+<label><input id="device" type="checkbox"> New device</label>
+<button type="submit">Analyze transaction</button>
+</form>
+<h2 id="result">Enter details to see a risk score.</h2>
+</section>
+<section>
+<h2>Recent transactions</h2>
+<table>
+<thead><tr><th>ID</th><th>Amount</th><th>Risk score</th><th>Level</th></tr></thead>
+<tbody id="history"></tbody>
+</table>
+</section>
+</main>
+<script>
+async function loadHistory(){
+ const response=await fetch('/transactions');
+ const rows=await response.json();
+ document.getElementById('history').innerHTML=rows.map(r=>
+ `<tr><td>${r.id}</td><td>£${r.amount.toFixed(2)}</td>
+ <td>${(r.probability*100).toFixed(1)}%</td>
+ <td class="${r.risk.toLowerCase()}">${r.risk}</td></tr>`
+ ).join('');
+}
+document.getElementById('form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const data={
+  amount:Number(document.getElementById('amount').value),
+  hour:Number(document.getElementById('hour').value),
+  previous_transactions:Number(document.getElementById('previous').value),
+  international:document.getElementById('international').checked,
+  new_device:document.getElementById('device').checked
+ };
+ const response=await fetch('/predict',{
+  method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(data)
+ });
+ const result=await response.json();
+ document.getElementById('result').textContent=
+ `Risk: ${result.risk_level} — ${(result.fraud_probability*100).toFixed(1)}%`;
+ await loadHistory();
+});
+loadHistory();
+</script>
+</body>
+</html>
